@@ -1,9 +1,10 @@
-# db.py
+import os
 import sqlite3
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 DB_PATH = "data/jd_copilot.sqlite"
+os.makedirs("data", exist_ok=True)
 
 def _conn():
     conn = sqlite3.connect(DB_PATH)
@@ -89,4 +90,5 @@ def update_opportunity(opp_id: int, fields: Dict[str, Any]) -> None:
     vals = list(fields.values()) + [opp_id]
     cur.execute(f"UPDATE opportunities SET {cols} WHERE id = ?", vals)
     conn.commit()
+
     conn.close()
