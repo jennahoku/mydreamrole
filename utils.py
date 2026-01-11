@@ -53,3 +53,30 @@ def compute_bucket(stage: str, day0_at: str, decision: str) -> Dict[str, Any]:
         "next_action_due": dt_to_iso(next_due) if next_due else None,
         "stage": suggested_stage
     }
+
+def estimate_openai_cost(
+    prompt_tokens: int,
+    completion_tokens: int,
+    model: str
+) -> float:
+    """
+    Rough cost estimate in USD based on published pricing.
+    Currently assumes gpt-4.1-mini standard pricing.
+    """
+
+    # Prices per 1M tokens (USD)
+    PRICES = {
+        "gpt-4.1-mini": {
+            "input": 0.80,
+            "output": 3.20,
+        }
+    }
+
+    pricing = PRICES.get(model, PRICES["gpt-4.1-mini"])
+
+    cost = (
+        (prompt_tokens / 1_000_000) * pricing["input"]
+        + (completion_tokens / 1_000_000) * pricing["output"]
+    )
+
+    return round(cost, 6)
