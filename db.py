@@ -38,6 +38,12 @@ def init_db():
 
         analysis_json TEXT,                              -- full analysis JSON
         analysis_model TEXT
+
+        prompt_tokens INTEGER,
+        completion_tokens INTEGER,
+        total_tokens INTEGER,
+        estimated_cost_usd REAL
+
     )
     """)
 
@@ -92,3 +98,4 @@ def update_opportunity(opp_id: int, fields: Dict[str, Any]) -> None:
     conn.commit()
 
     conn.close()
+
