@@ -72,4 +72,12 @@ Return JSON ONLY matching this JSON Schema:
     except ValidationError as e:
         raise RuntimeError(f"Model returned invalid schema: {e}")
 
-    return data, model
+usage = resp.usage
+
+return {
+    "analysis": data,
+    "model": model,
+    "prompt_tokens": usage.prompt_tokens,
+    "completion_tokens": usage.completion_tokens,
+    "total_tokens": usage.total_tokens,
+}
