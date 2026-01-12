@@ -11,6 +11,14 @@ def _conn():
     conn.row_factory = sqlite3.Row
     return conn
 
+def ensure_column(conn, table: str, column: str, col_type: str) -> None:
+    cur = conn.cursor()
+    cols = cur.execute(f"PRAGMA table_info({table})").fetchall()
+    existing = {c[1] for c in cols}  # column name is index 1
+    if column not in existing:
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+        conn.commit()
+
 def init_db():
     conn = _conn()
     cur = conn.cursor()
@@ -46,6 +54,12 @@ def init_db():
 
     )
     """)
+
+    # --- lightweight schema migration for MVP ---
+    ensure_column(conn, "opportunities", "prompt_tokens", "INTEGER")
+    ensure_column(conn, "opportunities", "completion_tokens", "INTEGER")
+    ensure_column(conn, "opportunities", "total_tokens", "INTEGER")
+    ensure_column(conn, "opportunities", "estimated_cost_usd", "REAL")
 
     conn.commit()
     conn.close()
@@ -98,4 +112,5 @@ def update_opportunity(opp_id: int, fields: Dict[str, Any]) -> None:
     conn.commit()
 
     conn.close()
+
 
