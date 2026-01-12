@@ -1,27 +1,41 @@
 # llm.py
 import os
 import json
-from dotenv import load_dotenv
+from typing import Optional, Dict, Any
+
+import streamlit as st
 from openai import OpenAI
 from pydantic import ValidationError
+
 from schemas import JDAnalysis
 
-load_dotenv()
-
 def get_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    # Prefer Streamlit secrets in deployment, fallback to env var locally
+    api_key = None
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY", None)
+    except Exception:
+        pass
+
+    api_key = api_key or os.getenv("OPENAI_API_KEY", "")
+
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set.")
+        raise RuntimeError("OPENAI_API_KEY is not set in Streamlit Secrets or environment variables.")
+
     return OpenAI(api_key=api_key)
 
 def default_model() -> str:
-    return os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    try:
+        return st.secrets.get("OPENAI_MODEL", "gpt-4.1-mini")
+    except Exception:
+        return os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-DAY0_SYSTEM = """You are an assistant that analyzes job descriptions for fit, risks, and interview prep.
-You must return valid JSON that matches the provided schema. No markdown. No extra keys.
-Be specific, avoid fluff, and include evidence quotes from the JD.
-If information is missing, put it in unknowns / what_to_verify rather than guessing.
-"""
+DAY0_SYSTEM = (
+    "You are an assistant that analyzes job descriptions for fit, risks, and interview prep.\n"
+    "You must return valid JSON that matches the provided schema. No markdown. No extra keys.\n"
+    "Be specific, avoid fluff, and include evidence quotes from the JD.\n"
+    "If information is missing, put it in unknowns / what_to_verify rather than guessing.\n"
+)
 
 def run_day0_analysis(
     jd_text: str,
@@ -29,8 +43,8 @@ def run_day0_analysis(
     role_title: str,
     user_rubric: str,
     user_profile: str,
-    model: str | None = None
-) -> tuple[dict, str]:
+    model: Optional[str] = None
+) -> Dict[str, Any]:
     client = get_client()
     model = model or default_model()
 
@@ -72,12 +86,11 @@ Return JSON ONLY matching this JSON Schema:
     except ValidationError as e:
         raise RuntimeError(f"Model returned invalid schema: {e}")
 
-usage = resp.usage
-
-return {
-    "analysis": data,
-    "model": model,
-    "prompt_tokens": usage.prompt_tokens,
-    "completion_tokens": usage.completion_tokens,
-    "total_tokens": usage.total_tokens,
-}
+    usage = resp.usage
+    return {
+        "analysis": data,
+        "model": model,
+        "prompt_tokens": getattr(usage, "prompt_tokens", 0),
+        "completion_tokens": getattr(usage, "completion_tokens", 0),
+        "total_tokens": getattr(usage, "total_tokens", 0),
+    }
