@@ -4,6 +4,7 @@ import streamlit as st
 from db import init_db, list_opportunities, create_opportunity, get_opportunity, update_opportunity
 from llm import run_day0_analysis
 from utils import compute_bucket
+from utils import estimate_openai_cost
 
 st.set_page_config(page_title="JD Copilot", layout="wide")
 
@@ -225,18 +226,36 @@ def main():
         else:
             with st.spinner("Analyzing JD..."):
                 try:
-                    analysis, model = run_day0_analysis(
+                    result = run_day0_analysis(
                         jd_text=opp["jd_text"],
                         company=opp["company"],
                         role_title=opp["role_title"],
                         user_rubric=rubric,
                         user_profile=profile,
                     )
+                    analysis = result["analysis"]
+                    model = result["model"]
+                    
+                    prompt_tokens = result["prompt_tokens"]
+                    completion_tokens = result["completion_tokens"]
+                    total_tokens = result["total_tokens"]
+                    
+                    estimated_cost = estimate_openai_cost(
+                        prompt_tokens,
+                        completion_tokens,
+                        model
+                    )
+                    
                     update_opportunity(opp["id"], {
                         "analysis_json": json.dumps(analysis),
                         "analysis_model": model,
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": total_tokens,
+                        "estimated_cost_usd": estimated_cost,
                         "stage": "ANALYZED"
                     })
+
                     st.success("Analysis saved.")
                     st.rerun()
                 except Exception as e:
@@ -254,4 +273,5 @@ def main():
         )
 
 if __name__ == "__main__":
+
     main()
