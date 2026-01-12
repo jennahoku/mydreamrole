@@ -109,6 +109,14 @@ def render_analysis(a: dict):
     with c2:
         st.markdown("**What to verify**")
         st.write(dc.get("what_to_verify", []))
+    
+    st.subheader("Run Cost & Token Usage")
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Prompt tokens", opp.get("prompt_tokens", 0))
+    c2.metric("Completion tokens", opp.get("completion_tokens", 0))
+    c3.metric("Total tokens", opp.get("total_tokens", 0))
+    c4.metric("Estimated cost ($)", f"${opp.get('estimated_cost_usd', 0):.4f}")
 
 def main():
     init_db()
@@ -275,3 +283,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
